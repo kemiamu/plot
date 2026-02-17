@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en" x-data="app()">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scatter Plot Visualization</title>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
+    <style>
+      canvas {
+        border: 1px solid #dbdbdb;
+        background-color: #f8f8f8;
+      }
+    </style>
+
+    <script>
+      function app() {
+        return {
+          status: null,
+          ctx: null,
+
+          // Constants
+          CANVAS_SIZE: 1024,
+          CANVAS_BACKGROUND_COLOR: "#f8f8f8",
+          POINT_RADIUS: 5,
+          POINT_FILL_COLOR: "#888",
+          LABEL_FONT: "16px Arial",
+          LABEL_COLOR: "#111",
+          LABEL_OFFSET: 10,
+          PROPORTION: 0.8,
+          SAMPLE_DATA_RANGE: 100,
+
+          // points
+          _pointGroups: [],
+
+          get pointGroups() {
+            return this._pointGroups;
+          },
+
+          set pointGroups(value) {
+            const points = value.flat();
+
+            // Normalize coordinates to canvas range
+            const xs = points.map((p) => p.x);
+            const ys = points.map((p) => p.y);
+            const minX = Math.min(...xs);
+            const maxX = Math.max(...xs);
+            const minY = Math.min(...ys);
+            const maxY = Math.max(...ys);
+            const rangeX = maxX - minX || 1;
+            const rangeY = maxY - minY || 1;
+            const scale = Math.max(rangeX, rangeY);
+            const marginX = 0.5 * (1 - this.PROPORTION * (rangeX / scale));
+            const marginY = 0.5 * (1 - this.PROPORTION * (rangeY / scale));
+
+            value.forEach((points) => {
+              points.forEach((point) => {
+                point.normalizedX = marginX + this.PROPORTION * ((point.x - minX) / scale);
+                point.normalizedY = marginY + this.PROPORTION * ((point.y - minY) / scale);
+              });
+            });
+
+            this.ctx.clearRect(0, 0, this.CANVAS_SIZE, this.CANVAS_SIZE);
+            this.ctx.fillStyle = this.CANVAS_BACKGROUND_COLOR;
+            this.ctx.fillRect(0, 0, this.CANVAS_SIZE, this.CANVAS_SIZE);
+
+            // Draw lines
+            value.map((points) => {
+              if (points.length === 0) return [];
+
+              const mainPoint = points[0];
+              const mainX = mainPoint.normalizedX * this.CANVAS_SIZE;
+              const mainY = mainPoint.normalizedY * this.CANVAS_SIZE;
+
+              let horizontalStart = mainX;
+              let horizontalEnd = mainX;
+              let verticalStart = mainY;
+              let verticalEnd = mainY;
+
+              // Draw connection lines and update trunk endpoints
+              points.forEach((point) => {
+                const x = point.normalizedX * this.CANVAS_SIZE;
+                const y = point.normalizedY * this.CANVAS_SIZE;
+
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "#00aa00";
+                this.ctx.lineWidth = 1;
+                this.ctx.moveTo(x, y);
+
+                if (Math.abs(y - mainY) < Math.abs(x - mainX)) {
+                  // Connect to horizontal trunk
+                  this.ctx.lineTo(x, mainY);
+                  horizontalStart = Math.min(horizontalStart, x);
+                  horizontalEnd = Math.max(horizontalEnd, x);
+                } else {
+                  // Connect to vertical trunk
+                  this.ctx.lineTo(mainX, y);
+                  verticalStart = Math.min(verticalStart, y);
+                  verticalEnd = Math.max(verticalEnd, y);
+                }
+                this.ctx.stroke();
+              });
+
+              // Draw horizontal trunk line (limited length, connected to main point)
+              this.ctx.beginPath();
+              this.ctx.moveTo(horizontalStart, mainPoint.normalizedY * this.CANVAS_SIZE);
+              this.ctx.lineTo(horizontalEnd, mainPoint.normalizedY * this.CANVAS_SIZE);
+              this.ctx.strokeStyle = "#ff0000";
+              this.ctx.lineWidth = 2;
+              this.ctx.stroke();
+
+              // Draw vertical trunk line (limited length, connected to main point)
+              this.ctx.beginPath();
+              this.ctx.moveTo(mainPoint.normalizedX * this.CANVAS_SIZE, verticalStart);
+              this.ctx.lineTo(mainPoint.normalizedX * this.CANVAS_SIZE, verticalEnd);
+              this.ctx.strokeStyle = "#0000ff";
+              this.ctx.lineWidth = 2;
+              this.ctx.stroke();
+
+              return points;
+            });
+
+            // Draw points
+            points.forEach((point) => {
+              // Skip drawing if point has no name
+              if (!point.name) return;
+
+              const x = point.normalizedX * this.CANVAS_SIZE;
+              const y = point.normalizedY * this.CANVAS_SIZE;
+
+              this.ctx.beginPath();
+              this.ctx.arc(x, y, this.POINT_RADIUS, 0, Math.PI * 2);
+              this.ctx.fillStyle = this.POINT_FILL_COLOR;
+              this.ctx.fill();
+
+              this.ctx.font = this.LABEL_FONT;
+              this.ctx.fillStyle = this.LABEL_COLOR;
+              this.ctx.textAlign = "center";
+              this.ctx.fillText(point.name, x, y - this.LABEL_OFFSET);
+            });
+
+            // set value
+            console.log("Setting points:", value);
+            this._pointGroups = value;
+          },
+
+          // Computed properties
+          get xRange() {
+            const points = this.pointGroups.flat();
+            if (!points.length) return "N/A";
+            const xs = points.map((p) => p.x);
+            return `${Math.min(...xs).toFixed(2)} to ${Math.max(...xs).toFixed(2)}`;
+          },
+
+          get yRange() {
+            const points = this.pointGroups.flat();
+            if (!points.length) return "N/A";
+            const ys = points.map((p) => p.y);
+            return `${Math.min(...ys).toFixed(2)} to ${Math.max(...ys).toFixed(2)}`;
+          },
+
+          // init
+          init() {
+            this.ctx = this.$refs.canvas.getContext("2d");
+            this.fetchData();
+          },
+
+          // Fetch data from points.json
+          fetchData() {
+            this.status = "loading";
+
+            fetch("./points.json")
+              .then((resp) => resp.json())
+              .then((data) => {
+                this.pointGroups = data;
+                this.status = "finish";
+              })
+              .catch((err) => {
+                console.error("Error loading points.json:", err);
+                this.loadSampleData();
+                this.status = "error";
+              });
+          },
+
+          // Refresh data
+          refreshData() {
+            this.fetchData();
+          },
+
+          // Load sample data (fallback)
+          loadSampleData() {
+            // Generate sample data if points.json is not found
+            const names = [
+              "Home",
+              "Work",
+              "School",
+              "Park",
+              "Mall",
+              "Hospital",
+              "Airport",
+              "Station",
+              "Library",
+              "Gym",
+              "Restaurant",
+              "Cafe",
+              "Supermarket",
+              "Bank",
+              "Post Office",
+              "Hotel",
+              "Museum",
+              "Theater",
+              "Cinema",
+              "Stadium",
+              "University",
+              "College",
+              "Pharmacy",
+              "Clinic",
+              "Police Station",
+              "Fire Station",
+              "Gas Station",
+              "Car Wash",
+              "Hardware Store",
+              "Bookstore",
+              "Electronics Store",
+              "Clothing Store",
+              "Shoe Store",
+              "Toy Store",
+              "Pet Store",
+              "Florist",
+              "Bakery",
+              "Butcher",
+              "Farmers Market",
+              "Convenience Store",
+              "Department Store",
+              "Outlet",
+              "Beach",
+              "Lake",
+              "Mountain",
+              "Forest",
+              "Zoo",
+              "Aquarium",
+              "Amusement Park",
+              "Gallery",
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+            ];
+            const points = names.map((name) => ({
+              x: (Math.random() - 0.5) * this.SAMPLE_DATA_RANGE * 2,
+              y: (Math.random() - 0.5) * this.SAMPLE_DATA_RANGE * 2,
+              name,
+            }));
+
+            console.log("Parsed points:", points);
+            this.pointGroups = [points];
+          },
+        };
+      }
+    </script>
+  </head>
+  <body>
+    <section class="section">
+      <div class="container">
+        <div class="columns">
+          <div class="column is-8">
+            <div class="level is-mobile">
+              <div class="level-left">
+                <div class="level-item">
+                  <h1 class="title is-4">Scatter Plot</h1>
+                </div>
+              </div>
+              <div class="level-right">
+                <div class="level-item">
+                  <button class="button is-small is-primary" @click="refreshData">Refresh</button>
+                </div>
+              </div>
+            </div>
+
+            <template x-if="status === 'error'">
+              <div class="notification is-danger">Failed to load data. Displaying random data.</div>
+            </template>
+            <template x-if="status === 'loading'">
+              <div class="notification">Loading...</div>
+            </template>
+
+            <canvas
+              width="1024"
+              height="1024"
+              x-ref="canvas"
+              style="max-width: 100%; height: auto"
+            ></canvas>
+          </div>
+
+          <div class="column is-4">
+            <div class="notification">
+              <p><strong>Total Points:</strong> <span x-text="points.flat().length"></span></p>
+              <p><strong>X Range:</strong> <span x-text="xRange"></span></p>
+              <p><strong>Y Range:</strong> <span x-text="yRange"></span></p>
+            </div>
+
+            <template x-if="points.flat().length > 0">
+              <table class="table is-fullwidth">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>X</th>
+                    <th>Y</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="point in points.flat()">
+                    <tr>
+                      <td x-text="point.name"></td>
+                      <td x-text="point.x.toFixed(2)"></td>
+                      <td x-text="point.y.toFixed(2)"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </template>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
