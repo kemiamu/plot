@@ -24,10 +24,10 @@
           CANVAS_BACKGROUND_COLOR: "#f8f8f8",
           POINT_RADIUS: 5,
           POINT_FILL_COLOR: "#888",
-          LABEL_FONT: "16px Arial",
+          LABEL_FONT: "14px Arial",
           LABEL_COLOR: "#111",
           LABEL_OFFSET: 10,
-          PROPORTION: 0.8,
+          PROPORTION: 0.9,
           SAMPLE_DATA_RANGE: 100,
 
           // points
@@ -291,8 +291,8 @@
             </template>
 
             <canvas
-              width="1024"
-              height="1024"
+              :width="CANVAS_SIZE"
+              :height="CANVAS_SIZE"
               x-ref="canvas"
               style="max-width: 100%; height: auto"
             ></canvas>
@@ -300,12 +300,12 @@
 
           <div class="column is-4">
             <div class="notification">
-              <p><strong>Total Points:</strong> <span x-text="points.flat().length"></span></p>
+              <p><strong>Total Points:</strong> <span x-text="pointGroups.flat().length"></span></p>
               <p><strong>X Range:</strong> <span x-text="xRange"></span></p>
               <p><strong>Y Range:</strong> <span x-text="yRange"></span></p>
             </div>
 
-            <template x-if="points.flat().length > 0">
+            <template x-if="pointGroups.flat().length > 0">
               <table class="table is-fullwidth">
                 <thead>
                   <tr>
@@ -315,7 +315,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <template x-for="point in points.flat()">
+                  <template x-for="point in pointGroups.flat().filter((p)=>p.name)">
                     <tr>
                       <td x-text="point.name"></td>
                       <td x-text="point.x.toFixed(2)"></td>
