@@ -9,6 +9,23 @@
     { "x": -396.5, "y": -18.5, "name": "Mushroom Fields" },
     { "x": -86.5, "y": -10.5, "name": "BASE" },
     { "x": -44.5, "y": 8.5, "name": "MengMeng's Home" },
-    { "x": 0.5, "y": 0.5, "name": "Spawn Point" }
-  ]
+    { "x": 0.5, "y": 0.5, "name": "Spawn Point" },
+    { "x": -24.5, "y": -87.5, "name": "Flower Forest" },
+    { "x": -58.5, "y": 5.5, "name": "Zombified Piglin Farm" },
+    { "x": 126.5, "y": -13.5, "name": null }
+  ],
+  [
+    { "x": 126.5, "y": -13.5, "name": null },
+    { "x": 142.5, "y": -275.5, "name": "Eroded Badlands & Ominous Bottle Farm" },
+    { "x": 113.5, "y": -991.5, "name": "Mangrove Swamp" },
+    { "x": 104.5, "y": -29.5, "name": "Tea's Home" },
+    { "x": 151.5, "y": 12.5, "name": "Totem Farm" },
+    { "x": 208.5, "y": -18.5, "name": "Strongholds" },
+    { "x": 124.5, "y": 63.5, "name": "Taiga" },
+    { "x": 370.5, "y": 0.5, "name": "Swamp Mob Farm" },
+    { "x": 497.5, "y": -45.5, "name": "Island" },
+    { "x": 810.5, "y": -23.5, "name": "Frozen Ocean" },
+    { "x": 1777.5, "y": -3.5, "name": "Cherry Grove" }
+  ],
+  [{ "x": 148.5, "y": 5.5, "name": "Hoglin Farm" }]
 ]
