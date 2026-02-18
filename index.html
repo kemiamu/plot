@@ -16,7 +16,7 @@
     <script>
       function app() {
         return {
-          status: null,
+          status: "loading",
           ctx: null,
 
           // Constants
@@ -282,9 +282,7 @@
             <template x-if="status === 'error'">
               <div class="notification is-danger">Failed to load data. Displaying random data.</div>
             </template>
-            <template x-if="status === 'loading'">
-              <div class="notification">Loading...</div>
-            </template>
+            <div class="notification" x-show="status === 'loading'" x-transition>Loading...</div>
 
             <canvas
               :width="CANVAS_SIZE"
