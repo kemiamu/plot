@@ -26,7 +26,7 @@
           POINT_FILL_COLOR: "#888",
           LABEL_FONT: "14px Arial",
           LABEL_COLOR: "#111",
-          LABEL_OFFSET: 10,
+          LABEL_OFFSET: 14,
           PROPORTION: 0.9,
           SAMPLE_DATA_RANGE: 100,
 
@@ -38,84 +38,92 @@
           },
 
           set pointGroups(value) {
+            // shallow copy
             const points = value.flat();
+            const range = points.length - 1;
 
-            // Normalize coordinates to canvas range
-            const xs = points.map((p) => p.x);
-            const ys = points.map((p) => p.y);
-            const minX = Math.min(...xs);
-            const maxX = Math.max(...xs);
-            const minY = Math.min(...ys);
-            const maxY = Math.max(...ys);
-            const rangeX = maxX - minX || 1;
-            const rangeY = maxY - minY || 1;
-            const scale = Math.max(rangeX, rangeY);
-            const marginX = 0.5 * (1 - this.PROPORTION * (rangeX / scale));
-            const marginY = 0.5 * (1 - this.PROPORTION * (rangeY / scale));
+            const col = points.sort((a, b) => a.x - b.x);
+            col.forEach((item, index) => (item.rank_x = index / range));
+            const row = points.sort((a, b) => a.y - b.y);
+            row.forEach((item, index) => (item.rank_y = index / range));
 
-            value.forEach((points) => {
-              points.forEach((point) => {
-                point.normalizedX = marginX + this.PROPORTION * ((point.x - minX) / scale);
-                point.normalizedY = marginY + this.PROPORTION * ((point.y - minY) / scale);
-              });
-            });
+            // tools
+
+            const margin = (1 - this.PROPORTION) / 2;
+            const convert_to_canvas = (point) => [
+              (margin + this.PROPORTION * point[0]) * this.CANVAS_SIZE,
+              (margin + this.PROPORTION * point[1]) * this.CANVAS_SIZE,
+            ];
+
+            const draw_point = (point, name) => {
+              const [canvas_x, canvas_y] = convert_to_canvas(point);
+
+              this.ctx.beginPath();
+              this.ctx.arc(canvas_x, canvas_y, this.POINT_RADIUS, 0, Math.PI * 2);
+              this.ctx.fillStyle = this.POINT_FILL_COLOR;
+              this.ctx.fill();
+
+              const draw_label = (text, offset_level) => {
+                const offset = this.POINT_RADIUS * 2 + this.LABEL_OFFSET * offset_level;
+                this.ctx.font = this.LABEL_FONT;
+                this.ctx.fillStyle = this.LABEL_COLOR;
+                this.ctx.textAlign = "center";
+                this.ctx.fillText(text, canvas_x, canvas_y - offset);
+              };
+
+              draw_label(`(${point[0].toFixed(2)}, ${point[1].toFixed(2)})`, 0);
+              draw_label(name, 1);
+            };
+
+            const draw_line = (p0, p1, style, width) => {
+              const [x0, y0] = convert_to_canvas(p0);
+              const [x1, y1] = convert_to_canvas(p1);
+
+              this.ctx.beginPath();
+              this.ctx.strokeStyle = style;
+              this.ctx.lineWidth = width;
+              this.ctx.moveTo(x0, y0);
+              this.ctx.lineTo(x1, y1);
+              this.ctx.stroke();
+            };
+
+            const draw_trunk = (p0, p1) => {
+              const direction = Math.abs(p0[0] - p1[0]) >= Math.abs(p0[1] - p1[1]);
+              return draw_line(p0, p1, direction ? "#ff0000" : "#0000ff", 1);
+            };
+
+            const draw_branch = (p0, p1) => draw_line(p0, p1, "#00aa00", 1);
+
+            // draws
 
             this.ctx.clearRect(0, 0, this.CANVAS_SIZE, this.CANVAS_SIZE);
             this.ctx.fillStyle = this.CANVAS_BACKGROUND_COLOR;
             this.ctx.fillRect(0, 0, this.CANVAS_SIZE, this.CANVAS_SIZE);
 
-            // Draw lines
+            // lines
             value.map((points) => {
-              if (points.length === 0) return [];
+              if (points.length < 2) return [];
 
-              const mainPoint = points[0];
-              const mainX = mainPoint.normalizedX * this.CANVAS_SIZE;
-              const mainY = mainPoint.normalizedY * this.CANVAS_SIZE;
+              const main_point = points[0];
+              let trunk_x = { min: main_point.rank_x, max: main_point.rank_x };
+              let trunk_y = { min: main_point.rank_y, max: main_point.rank_y };
 
-              let horizontalStart = mainX;
-              let horizontalEnd = mainX;
-              let verticalStart = mainY;
-              let verticalEnd = mainY;
-
-              // Draw connection lines and update trunk endpoints
+              // Draw branches and collect trunk extents
               points.forEach((point) => {
-                const x = point.normalizedX * this.CANVAS_SIZE;
-                const y = point.normalizedY * this.CANVAS_SIZE;
-
-                this.ctx.beginPath();
-                this.ctx.strokeStyle = "#00aa00";
-                this.ctx.lineWidth = 1;
-                this.ctx.moveTo(x, y);
-
-                if (Math.abs(y - mainY) < Math.abs(x - mainX)) {
-                  // Connect to horizontal trunk
-                  this.ctx.lineTo(x, mainY);
-                  horizontalStart = Math.min(horizontalStart, x);
-                  horizontalEnd = Math.max(horizontalEnd, x);
+                if (Math.abs(point.x - main_point.x) >= Math.abs(point.y - main_point.y)) {
+                  trunk_x.min = Math.min(trunk_x.min, point.rank_x);
+                  trunk_x.max = Math.max(trunk_x.max, point.rank_x);
+                  draw_branch([point.rank_x, main_point.rank_y], [point.rank_x, point.rank_y]);
                 } else {
-                  // Connect to vertical trunk
-                  this.ctx.lineTo(mainX, y);
-                  verticalStart = Math.min(verticalStart, y);
-                  verticalEnd = Math.max(verticalEnd, y);
+                  trunk_y.min = Math.min(trunk_y.min, point.rank_y);
+                  trunk_y.max = Math.max(trunk_y.max, point.rank_y);
+                  draw_branch([main_point.rank_x, point.rank_y], [point.rank_x, point.rank_y]);
                 }
-                this.ctx.stroke();
               });
 
-              // Draw horizontal trunk line (limited length, connected to main point)
-              this.ctx.beginPath();
-              this.ctx.moveTo(horizontalStart, mainPoint.normalizedY * this.CANVAS_SIZE);
-              this.ctx.lineTo(horizontalEnd, mainPoint.normalizedY * this.CANVAS_SIZE);
-              this.ctx.strokeStyle = "#ff0000";
-              this.ctx.lineWidth = 2;
-              this.ctx.stroke();
-
-              // Draw vertical trunk line (limited length, connected to main point)
-              this.ctx.beginPath();
-              this.ctx.moveTo(mainPoint.normalizedX * this.CANVAS_SIZE, verticalStart);
-              this.ctx.lineTo(mainPoint.normalizedX * this.CANVAS_SIZE, verticalEnd);
-              this.ctx.strokeStyle = "#0000ff";
-              this.ctx.lineWidth = 2;
-              this.ctx.stroke();
+              // Draw trunk line
+              draw_trunk([trunk_x.min, main_point.rank_y], [trunk_x.max, main_point.rank_y]);
+              draw_trunk([main_point.rank_x, trunk_y.min], [main_point.rank_x, trunk_y.max]);
 
               return points;
             });
@@ -124,19 +132,7 @@
             points.forEach((point) => {
               // Skip drawing if point has no name
               if (!point.name) return;
-
-              const x = point.normalizedX * this.CANVAS_SIZE;
-              const y = point.normalizedY * this.CANVAS_SIZE;
-
-              this.ctx.beginPath();
-              this.ctx.arc(x, y, this.POINT_RADIUS, 0, Math.PI * 2);
-              this.ctx.fillStyle = this.POINT_FILL_COLOR;
-              this.ctx.fill();
-
-              this.ctx.font = this.LABEL_FONT;
-              this.ctx.fillStyle = this.LABEL_COLOR;
-              this.ctx.textAlign = "center";
-              this.ctx.fillText(point.name, x, y - this.LABEL_OFFSET);
+              draw_point([point.rank_x, point.rank_y], point.name);
             });
 
             // set value
