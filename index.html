@@ -42,10 +42,10 @@
             const points = value.flat();
             const range = points.length - 1;
 
-            const col = points.sort((a, b) => a.x - b.x);
-            col.forEach((item, index) => (item.rank_x = index / range));
-            const row = points.sort((a, b) => a.y - b.y);
-            row.forEach((item, index) => (item.rank_y = index / range));
+            const cols = points.sort((a, b) => a.x - b.x);
+            cols.forEach((item, index) => (item.rank_x = index / range));
+            const rows = points.sort((a, b) => a.y - b.y);
+            rows.forEach((item, index) => (item.rank_y = index / range));
 
             // tools
 
@@ -55,7 +55,7 @@
               (margin + this.PROPORTION * point[1]) * this.CANVAS_SIZE,
             ];
 
-            const draw_point = (point, name) => {
+            const draw_point = (point, location, name) => {
               const [canvas_x, canvas_y] = convert_to_canvas(point);
 
               this.ctx.beginPath();
@@ -71,7 +71,7 @@
                 this.ctx.fillText(text, canvas_x, canvas_y - offset);
               };
 
-              draw_label(`(${point[0].toFixed(2)}, ${point[1].toFixed(2)})`, 0);
+              draw_label(`(${location[0].toFixed(2)}, ${location[1].toFixed(2)})`, 0);
               draw_label(name, 1);
             };
 
@@ -132,7 +132,7 @@
             points.forEach((point) => {
               // Skip drawing if point has no name
               if (!point.name) return;
-              draw_point([point.rank_x, point.rank_y], point.name);
+              draw_point([point.rank_x, point.rank_y], [point.x, point.y], point.name);
             });
 
             // set value
