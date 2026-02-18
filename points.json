@@ -20,11 +20,11 @@
     { "x": 497.5, "y": -45.5, "name": "Island" },
     { "x": 810.5, "y": -23.5, "name": "Frozen Ocean" },
     { "x": 1777.5, "y": -3.5, "name": "Cherry Grove" },
-    { "x": 7.5, "y": 143.5, "name": "Hoglin Farm" },
+    { "x": 7.5, "y": 143.5, "name": "Hoglin Farm" }
   ],
   [
     { "x": 126.5, "y": -12.5, "name": null },
     { "x": 142.5, "y": -275.5, "name": "Eroded Badlands & Ominous Bottle Farm" },
-    { "x": 113.5, "y": -991.5, "name": "Mangrove Swamp" },
-  ],
+    { "x": 113.5, "y": -991.5, "name": "Mangrove Swamp" }
+  ]
 ]
