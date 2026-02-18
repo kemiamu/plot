@@ -282,7 +282,7 @@
             <template x-if="status === 'error'">
               <div class="notification is-danger">Failed to load data. Displaying random data.</div>
             </template>
-            <div class="notification" x-show="status === 'loading'" x-transition>Loading...</div>
+            <div class="notification" x-show="status === 'loading'">Loading...</div>
 
             <canvas
               :width="CANVAS_SIZE"
