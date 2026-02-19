@@ -227,7 +227,9 @@
           fetchData() {
             this.status = "loading";
 
-            fetch("./points.json")
+            fetch("./points.json", {
+                cache: 'reload'
+            })
               .then((resp) => resp.json())
               .then((data) => {
                 this.pointGroups = data;
