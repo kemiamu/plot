@@ -24,10 +24,7 @@
     { "x": 7.5, "y": 143.5, "name": "Hoglin Farm 肉排机" },
     { "x": 602.5, "y": -20.5, "name": "Nether Fortress" },
     { "x": -355.5, "y": -699.5, "name": "Wither Skeleton Farm 凋零骷髅农场" },
-    { "x": -125.5, "y": 18.5, "name": "Yonallinsu's Home" }
-  ],
-  [
-    { "x": 126.5, "y": -12.5, "name": null },
+    { "x": -125.5, "y": 18.5, "name": "Yonallinsu's Home" },
     { "x": 142.5, "y": -275.5, "name": "Eroded Badlands & Ominous Bottle Farm 风蚀恶地 & 瓶子塔" },
     { "x": 113.5, "y": -991.5, "name": "Mangrove Swamp 红树林" }
   ]
